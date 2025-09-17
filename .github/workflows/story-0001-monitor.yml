@@ -56,8 +56,15 @@ jobs:
       run: |
         echo "🔍 Checking for Story 0001 file changes..."
         
-        # Get list of changed files
-        CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+        # Check if this is the first commit (no HEAD~1)
+        if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+          # Get list of changed files from previous commit
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+        else
+          # This is the first commit, check all files
+          echo "First commit detected - checking all files"
+          CHANGED_FILES=$(git ls-tree -r --name-only HEAD)
+        fi
         
         # Story 0001 core files
         STORY_0001_FILES=(

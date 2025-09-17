@@ -51,12 +51,27 @@ function Get-ChangedFiles {
     param([string]$Ref)
     
     try {
-        $changedFiles = git diff --name-only $Ref HEAD 2>$null
+        # Check if the reference exists (e.g., HEAD~1)
+        $refExists = git rev-parse --verify $Ref 2>$null
         if ($LASTEXITCODE -eq 0) {
-            return $changedFiles
+            # Reference exists, get changed files
+            $changedFiles = git diff --name-only $Ref HEAD 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                return $changedFiles
+            } else {
+                Write-Warning "Git diff command failed."
+                return @()
+            }
         } else {
-            Write-Warning "Git command failed. Make sure you're in a git repository."
-            return @()
+            # Reference doesn't exist (e.g., first commit), get all files
+            Write-Host "Reference '$Ref' not found - checking all files in repository" -ForegroundColor Yellow
+            $allFiles = git ls-tree -r --name-only HEAD 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                return $allFiles
+            } else {
+                Write-Warning "Git ls-tree command failed."
+                return @()
+            }
         }
     } catch {
         Write-Warning "Error checking git changes: $_"
