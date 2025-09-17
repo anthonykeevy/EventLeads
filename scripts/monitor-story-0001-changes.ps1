@@ -51,27 +51,35 @@ function Get-ChangedFiles {
     param([string]$Ref)
     
     try {
-        # Check if the reference exists (e.g., HEAD~1)
-        $refExists = git rev-parse --verify $Ref 2>$null
+        # Use a more robust approach to detect first commit
+        $commitCount = git rev-list --count HEAD 2>$null
         if ($LASTEXITCODE -eq 0) {
-            # Reference exists, get changed files
-            $changedFiles = git diff --name-only $Ref HEAD 2>$null
-            if ($LASTEXITCODE -eq 0) {
-                return $changedFiles
+            Write-Host "Total commits in repository: $commitCount" -ForegroundColor Gray
+            
+            if ([int]$commitCount -gt 1) {
+                # Multiple commits exist, compare with previous commit
+                Write-Host "Multiple commits detected - comparing with previous commit" -ForegroundColor Gray
+                $changedFiles = git diff --name-only $Ref HEAD 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    return $changedFiles
+                } else {
+                    Write-Warning "Git diff command failed."
+                    return @()
+                }
             } else {
-                Write-Warning "Git diff command failed."
-                return @()
+                # This is the first commit, get all files
+                Write-Host "First commit detected - checking all files in repository" -ForegroundColor Yellow
+                $allFiles = git ls-tree -r --name-only HEAD 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    return $allFiles
+                } else {
+                    Write-Warning "Git ls-tree command failed."
+                    return @()
+                }
             }
         } else {
-            # Reference doesn't exist (e.g., first commit), get all files
-            Write-Host "Reference '$Ref' not found - checking all files in repository" -ForegroundColor Yellow
-            $allFiles = git ls-tree -r --name-only HEAD 2>$null
-            if ($LASTEXITCODE -eq 0) {
-                return $allFiles
-            } else {
-                Write-Warning "Git ls-tree command failed."
-                return @()
-            }
+            Write-Warning "Git rev-list command failed."
+            return @()
         }
     } catch {
         Write-Warning "Error checking git changes: $_"
