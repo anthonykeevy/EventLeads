@@ -66,6 +66,10 @@ on:
 jobs:
   story-0001-monitor:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     
     steps:
     - name: Checkout code
@@ -134,8 +138,9 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          const changedFiles = '${{ steps.detect-changes.outputs.changed-files }}'.split(' ');
-          const comment = `## 🚨 Story 0001 Files Modified
+          try {
+            const changedFiles = '${{ steps.detect-changes.outputs.changed-files }}'.split(' ');
+            const comment = `## 🚨 Story 0001 Files Modified
           
           The following Story 0001 core files have been modified in this PR:
           
@@ -151,23 +156,30 @@ jobs:
           - [ ] Database schema changes (if any)
           
           See [Story 0001 Monitoring Guide](docs/story-0001-monitoring-guide.md) for detailed testing procedures.`;
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+            
+            console.log('✅ Successfully commented on PR');
+          } catch (error) {
+            console.log('⚠️ Failed to comment on PR:', error.message);
+            console.log('This is not a critical failure - the monitoring still works');
+          }
     
     - name: Create Issue (if Story 0001 files changed on main/develop)
       if: github.event_name == 'push' && steps.detect-changes.outputs.story-files-changed == 'true'
       uses: actions/github-script@v7
       with:
         script: |
-          const changedFiles = '${{ steps.detect-changes.outputs.changed-files }}'.split(' ');
-          const issue = {
-            title: '🚨 Story 0001 Files Modified - Regression Testing Required',
-            body: `## Story 0001 Files Modified on ${context.ref}
+          try {
+            const changedFiles = '${{ steps.detect-changes.outputs.changed-files }}'.split(' ');
+            const issue = {
+              title: '🚨 Story 0001 Files Modified - Regression Testing Required',
+              body: `## Story 0001 Files Modified on ${context.ref}
             
             The following Story 0001 core files have been modified:
             
@@ -186,14 +198,21 @@ jobs:
             
             **Priority**: High
             **Labels**: regression-testing, story-0001, monitoring`,
-            labels: ['regression-testing', 'story-0001', 'monitoring']
-          };
-          
-          github.rest.issues.create({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ...issue
-          });
+              labels: ['regression-testing', 'story-0001', 'monitoring']
+            };
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ...issue
+            });
+            
+            console.log('✅ Successfully created issue');
+          } catch (error) {
+            console.log('⚠️ Failed to create issue:', error.message);
+            console.log('This is not a critical failure - the monitoring still works');
+            console.log('You may need to check repository permissions for GitHub Actions');
+          }
     
     - name: Summary
       run: |
