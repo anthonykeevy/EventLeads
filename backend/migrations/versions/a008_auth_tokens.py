@@ -19,30 +19,52 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     bind = op.get_bind()
     dialect = bind.dialect.name if bind is not None else ""
+    inspector = sa.inspect(bind)
     utc_default = sa.text("CURRENT_TIMESTAMP") if dialect == "sqlite" else sa.text("GETUTCDATE()")
-    op.create_table(
-        "EmailVerificationToken",
-        sa.Column("Id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("UserID", sa.Integer(), sa.ForeignKey("[User].UserID"), nullable=False),
-        sa.Column("Token", sa.String(length=128), nullable=False),
-        sa.Column("ExpiresAt", sa.DateTime(), nullable=False),
-        sa.Column("ConsumedAt", sa.DateTime(), nullable=True),
-        sa.Column("CreatedAt", sa.DateTime(), nullable=False, server_default=utc_default),
-    )
-    op.create_index("IX_EmailVerificationToken_User", "EmailVerificationToken", ["UserID"])
-    op.create_index("IX_EmailVerificationToken_Expires", "EmailVerificationToken", ["ExpiresAt"])
 
-    op.create_table(
-        "PasswordResetToken",
-        sa.Column("Id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("UserID", sa.Integer(), sa.ForeignKey("[User].UserID"), nullable=False),
-        sa.Column("Token", sa.String(length=128), nullable=False),
-        sa.Column("ExpiresAt", sa.DateTime(), nullable=False),
-        sa.Column("ConsumedAt", sa.DateTime(), nullable=True),
-        sa.Column("CreatedAt", sa.DateTime(), nullable=False, server_default=utc_default),
-    )
-    op.create_index("IX_PasswordResetToken_User", "PasswordResetToken", ["UserID"])
-    op.create_index("IX_PasswordResetToken_Expires", "PasswordResetToken", ["ExpiresAt"])
+    if not inspector.has_table("EmailVerificationToken"):
+        op.create_table(
+            "EmailVerificationToken",
+            sa.Column("Id", sa.BigInteger(), primary_key=True, autoincrement=True),
+            sa.Column("UserID", sa.BigInteger(), sa.ForeignKey("[User].UserID"), nullable=False),
+            sa.Column("Token", sa.String(length=128), nullable=False),
+            sa.Column("ExpiresAt", sa.DateTime(), nullable=False),
+            sa.Column("ConsumedAt", sa.DateTime(), nullable=True),
+            sa.Column(
+                "CreatedAt", sa.DateTime(), nullable=False, server_default=utc_default
+            ),
+        )
+        op.create_index(
+            "IX_EmailVerificationToken_User",
+            "EmailVerificationToken",
+            ["UserID"],
+        )
+        op.create_index(
+            "IX_EmailVerificationToken_Expires",
+            "EmailVerificationToken",
+            ["ExpiresAt"],
+        )
+
+    if not inspector.has_table("PasswordResetToken"):
+        op.create_table(
+            "PasswordResetToken",
+            sa.Column("Id", sa.BigInteger(), primary_key=True, autoincrement=True),
+            sa.Column("UserID", sa.BigInteger(), sa.ForeignKey("[User].UserID"), nullable=False),
+            sa.Column("Token", sa.String(length=128), nullable=False),
+            sa.Column("ExpiresAt", sa.DateTime(), nullable=False),
+            sa.Column("ConsumedAt", sa.DateTime(), nullable=True),
+            sa.Column(
+                "CreatedAt", sa.DateTime(), nullable=False, server_default=utc_default
+            ),
+        )
+        op.create_index(
+            "IX_PasswordResetToken_User", "PasswordResetToken", ["UserID"]
+        )
+        op.create_index(
+            "IX_PasswordResetToken_Expires",
+            "PasswordResetToken",
+            ["ExpiresAt"],
+        )
 
 
 def downgrade() -> None:

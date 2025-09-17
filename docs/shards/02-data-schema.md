@@ -78,10 +78,11 @@ Tables (min fields; see models for full definitions)
 - Lead(id, event_id FK, form_id FK, is_test, payload JSON, created_at, soft-delete)
 - Invoice(id, org_id FK, amount_cents, status, created_at, soft-delete)
 - EventDayEntitlement(id, org_id FK, event_id FK, date, amount_cents, invoice_id NULL)
+ - UsageCharge(id, org_id FK, event_id FK, charge_date, amount_cents, source, created_at)
 
 Constraints
 - All PKs: bigint identity; FK on delete cascade where appropriate
-- Unique: User.email per org; Field.key per layout; Form.public_slug global unique; EventDayEntitlement unique (event_id, date)
+- Unique: User.email per org; Field.key per layout; Form.public_slug global unique; EventDayEntitlement unique (event_id, date); UsageCharge unique (org_id, event_id, charge_date)
 
 Versioning Model
 - Layouts and fields immutable once published; new versions via duplicate + increment
@@ -95,6 +96,7 @@ Migration Notes (v0.2)
 - Introduce Form table; add CanvasLayout.form_id; keep event_id temporarily for backfill
 - Lead: add is_test + form_id
 - Add EventDayEntitlement for prepaid days; generate invoices from entitlements
+ - Introduce UsageCharge for per-day accounting (optional when using entitlements)
 
 
 

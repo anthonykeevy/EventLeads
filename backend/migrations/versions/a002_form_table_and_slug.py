@@ -23,8 +23,8 @@ def upgrade() -> None:
 
     op.create_table(
         "Form",
-        sa.Column("FormID", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("EventID", sa.Integer(), sa.ForeignKey("Event.EventID"), nullable=False),
+        sa.Column("FormID", sa.BigInteger(), primary_key=True, autoincrement=True),
+        sa.Column("EventID", sa.BigInteger(), sa.ForeignKey("Event.EventID"), nullable=False),
         sa.Column("Name", sa.String(length=300), nullable=False),
         sa.Column("Status", sa.String(length=50), nullable=False),
         sa.Column("PublicSlug", sa.String(length=80), nullable=True),
@@ -36,8 +36,18 @@ def upgrade() -> None:
         sa.Column("LastUpdated", sa.DateTime(), nullable=True),
         sa.Column("UpdatedBy", sa.String(length=100), nullable=True),
     )
-    # Filtered unique index on PublicSlug where not null (supported by SQLite and SQL Server)
-    op.execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_Form_PublicSlug ON Form(PublicSlug) WHERE PublicSlug IS NOT NULL")
+    # Filtered unique index on PublicSlug where not null
+    if dialect == "sqlite":
+        op.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_Form_PublicSlug "
+            "ON Form(PublicSlug) WHERE PublicSlug IS NOT NULL"
+        )
+    else:
+        # SQL Server doesn't support IF NOT EXISTS in CREATE INDEX directly
+        op.execute(
+            "CREATE UNIQUE INDEX UX_Form_PublicSlug ON [Form]([PublicSlug]) "
+            "WHERE [PublicSlug] IS NOT NULL"
+        )
 
 
 def downgrade() -> None:

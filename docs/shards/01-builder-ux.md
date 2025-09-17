@@ -22,5 +22,14 @@ Source refs: ../event-form-prd.md, ../tech-architecture.md
 - Labels associated via `for`/`id`
 - Keyboard focus visible; ARIA roles for interactive elements
 
+## Device Types & Default Resolutions
+- Desktop (16:9): 1920×1080 default design resolution
+- Tablet (4:3): 1024×768 default design resolution
+- Mobile (9:16): 390×844 default design resolution
+
+Notes
+- Each device type gets its own `CanvasLayout`; preview selects the closest match and falls back to desktop if none exists.
+- Background images should support zoom and placement controls; ensure object contrast over images.
+
 
 

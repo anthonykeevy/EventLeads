@@ -29,6 +29,15 @@ Source refs: ../tech-architecture.md
 - Form edits: block when status is ProductionEnabled for non-Admin
   - `PUT /api/v1/forms/{id}` → allow if `role=Admin` or (`role=User` and `status != ProductionEnabled`)
 
+- Soft delete & restore: Admin-only
+  - `DELETE /api/v1/events/{id}` → require `role=Admin`; marks soft-delete fields
+  - `POST /api/v1/events/{id}/restore` → require `role=Admin`
+  - `DELETE /api/v1/forms/{id}` → require `role=Admin`
+  - `POST /api/v1/forms/{id}/restore` → require `role=Admin`
+
+- Org scoping: All protected routes must scope by `org_id` claim
+  - Use FastAPI dependency to resolve user/org and filter queries by `org_id`
+
 ## Audit & Logging
 - Record actions: publish, archive/delete/restore, role changes, CSV exports, billing events
 - Include actor, resource, timestamp, and request ID

@@ -7,6 +7,7 @@ Create Date: 2025-09-14
 from typing import Sequence, Union
 
 from alembic import op
+import sqlalchemy as sa
 
 
 revision: str = "a009_backfill_form_ids"
@@ -19,6 +20,9 @@ def upgrade() -> None:
     # Create a default Form per Event that has CanvasLayouts without FormID
     bind = op.get_bind()
     dialect = bind.dialect.name if bind is not None else ""
+    inspector = sa.inspect(bind)
+    if not inspector.has_table("CanvasLayout"):
+        return
     if dialect == "sqlite":
         op.execute(
             "INSERT INTO Form (EventID, Name, Status, CreatedDate) "
@@ -57,6 +61,9 @@ def downgrade() -> None:
     # Best-effort revert: detach FormID and delete default forms with no layouts
     bind = op.get_bind()
     dialect = bind.dialect.name if bind is not None else ""
+    inspector = sa.inspect(bind)
+    if not inspector.has_table("CanvasLayout"):
+        return
     if dialect == "sqlite":
         op.execute("UPDATE CanvasLayout SET FormID = NULL WHERE FormID IS NOT NULL;")
         op.execute(

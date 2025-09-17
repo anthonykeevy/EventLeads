@@ -3,11 +3,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.settings import settings
-from .routers import auth, events, canvas, leads, invoices, billing, audit
+from .routers import (
+    auth,
+    events,
+    canvas,
+    leads,
+    invoices,
+    billing,
+    audit,
+    forms,
+)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     yield
 
 
@@ -47,6 +56,7 @@ def readyz():
 # Routers
 app.include_router(auth.router)
 app.include_router(events.router)
+app.include_router(forms.router)
 app.include_router(canvas.router)
 app.include_router(leads.router)
 app.include_router(invoices.router)

@@ -22,9 +22,9 @@ def upgrade() -> None:
     utc_default = sa.text("CURRENT_TIMESTAMP") if dialect == "sqlite" else sa.text("GETUTCDATE()")
     op.create_table(
         "UsageCharge",
-        sa.Column("UsageChargeID", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("OrganizationID", sa.Integer(), sa.ForeignKey("Organization.OrganizationID"), nullable=False),
-        sa.Column("EventID", sa.Integer(), sa.ForeignKey("Event.EventID"), nullable=False),
+        sa.Column("UsageChargeID", sa.BigInteger(), primary_key=True, autoincrement=True),
+        sa.Column("OrganizationID", sa.BigInteger(), sa.ForeignKey("Organization.OrganizationID"), nullable=False),
+        sa.Column("EventID", sa.BigInteger(), sa.ForeignKey("Event.EventID"), nullable=False),
         sa.Column("ChargeDate", sa.Date(), nullable=False),
         sa.Column("Amount", sa.Numeric(10, 2), nullable=False),
         sa.Column("Source", sa.String(length=50), nullable=False),
@@ -42,10 +42,14 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+    dialect = bind.dialect.name if bind is not None else ""
     if dialect == "sqlite":
         op.execute(
             "DROP INDEX IF EXISTS UQ_UsageCharge_Event_Date_Source"
         )
     else:
-        op.drop_constraint("UQ_UsageCharge_Event_Date_Source", "UsageCharge", type_="unique")
+        op.drop_constraint(
+            "UQ_UsageCharge_Event_Date_Source", "UsageCharge", type_="unique"
+        )
     op.drop_table("UsageCharge")
