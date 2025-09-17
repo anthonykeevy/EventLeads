@@ -3,7 +3,7 @@
 
 param(
     [string]$Action = "check",  # check, list, watch
-    [string]$GitRef = "HEAD~1"  # Git reference to compare against
+    [string]$GitRef = "HEAD"  # Git reference to compare against
 )
 
 # Story 0001 Core Files to Monitor
@@ -183,7 +183,7 @@ function Show-Help {
     Write-Host "Usage: .\scripts\monitor-story-0001-changes.ps1 [Action] [GitRef]" -ForegroundColor White
     Write-Host ""
     Write-Host "Actions:" -ForegroundColor Yellow
-    Write-Host "  check  - Check for changes since specified git reference (default: HEAD~1)" -ForegroundColor White
+    Write-Host "  check  - Check for changes since specified git reference (default: HEAD)" -ForegroundColor White
     Write-Host "  list   - List all Story 0001 core files" -ForegroundColor White
     Write-Host "  watch  - Continuously watch for changes (requires git repository)" -ForegroundColor White
     Write-Host "  help   - Show this help message" -ForegroundColor White

@@ -102,7 +102,7 @@ scripts/monitor-story-0001-changes.ps1
 Story 0001 File Change Monitor
 =================================
 
-Checking for changes since HEAD~1...
+Checking for changes since HEAD...
 
 WARNING: Story 0001 files have been modified!
 
