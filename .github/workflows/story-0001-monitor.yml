@@ -40,6 +40,28 @@ on:
     branches: [ main, develop ]
     paths:
       # Same paths as pull_request
+      - 'backend/app/routers/auth.py'
+      - 'backend/app/models/user.py'
+      - 'backend/app/models/emailverificationtoken.py'
+      - 'backend/app/models/passwordresettoken.py'
+      - 'backend/app/models/authevent.py'
+      - 'backend/app/utils/security.py'
+      - 'backend/app/schemas/auth.py'
+      - 'backend/app/core/settings.py'
+      - 'frontend/src/app/signup/page.tsx'
+      - 'frontend/src/app/login/page.tsx'
+      - 'frontend/src/app/verify/page.tsx'
+      - 'frontend/src/app/resend/page.tsx'
+      - 'frontend/src/app/reset/request/page.tsx'
+      - 'frontend/src/app/reset/confirm/page.tsx'
+      - 'frontend/src/lib/auth.ts'
+      - 'frontend/src/lib/api.ts'
+      - '.env.dev'
+      - 'docs/shards/02-data-schema.md'
+      - 'backend/migrations/versions/a013_*.py'
+      - 'docs/stories/0001-auth-org-foundation.md'
+      - 'docs/story-0001-uat-signoff-checklist.md'
+      - 'docs/story-0001-implementation-walkthrough.md'
 
 jobs:
   story-0001-monitor:
@@ -49,17 +71,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 2  # Need previous commit for comparison
+        fetch-depth: 0  # Get full history
     
     - name: Detect Story 0001 changes
       id: detect-changes
       run: |
         echo "🔍 Checking for Story 0001 file changes..."
         
-        # Always check all files in the current commit for Story 0001 monitoring
-        # This approach works for both first commit and subsequent commits
-        echo "Checking all files in current commit for Story 0001 changes"
-        CHANGED_FILES=$(git ls-tree -r --name-only HEAD)
+        # Get all files in the current commit
+        echo "Getting all files in current commit"
+        ALL_FILES=$(git ls-tree -r --name-only HEAD)
         
         # Story 0001 core files
         STORY_0001_FILES=(
@@ -81,73 +102,55 @@ jobs:
           "frontend/src/lib/api.ts"
           ".env.dev"
           "docs/shards/02-data-schema.md"
+          "backend/migrations/versions/a013_convert_boolean_fields_to_bit.py"
           "docs/stories/0001-auth-org-foundation.md"
           "docs/story-0001-uat-signoff-checklist.md"
           "docs/story-0001-implementation-walkthrough.md"
         )
         
-        # Check for Story 0001 file changes
-        STORY_0001_CHANGES=""
+        # Check if any Story 0001 files exist in the current commit
+        CHANGED_STORY_FILES=()
         for file in "${STORY_0001_FILES[@]}"; do
-          if echo "$CHANGED_FILES" | grep -q "^$file$"; then
-            STORY_0001_CHANGES="$STORY_0001_CHANGES$file"$'\n'
+          if echo "$ALL_FILES" | grep -q "^$file$"; then
+            CHANGED_STORY_FILES+=("$file")
           fi
         done
         
-        # Also check for migration files
-        MIGRATION_CHANGES=$(echo "$CHANGED_FILES" | grep "backend/migrations/versions/a013_" || true)
-        if [ -n "$MIGRATION_CHANGES" ]; then
-          STORY_0001_CHANGES="$STORY_0001_CHANGES$MIGRATION_CHANGES"$'\n'
-        fi
-        
-        if [ -n "$STORY_0001_CHANGES" ]; then
-          echo "🚨 Story 0001 files modified!"
-          echo "STORY_0001_CHANGED=true" >> $GITHUB_OUTPUT
-          echo "STORY_0001_FILES<<EOF" >> $GITHUB_OUTPUT
-          echo "$STORY_0001_CHANGES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+        # Set output
+        if [ ${#CHANGED_STORY_FILES[@]} -gt 0 ]; then
+          echo "story-files-changed=true" >> $GITHUB_OUTPUT
+          echo "changed-files=${CHANGED_STORY_FILES[*]}" >> $GITHUB_OUTPUT
+          echo "Found ${#CHANGED_STORY_FILES[@]} Story 0001 files in current commit:"
+          for file in "${CHANGED_STORY_FILES[@]}"; do
+            echo "  - $file"
+          done
         else
-          echo "✅ No Story 0001 files modified"
-          echo "STORY_0001_CHANGED=false" >> $GITHUB_OUTPUT
+          echo "story-files-changed=false" >> $GITHUB_OUTPUT
+          echo "No Story 0001 files found in current commit"
         fi
     
     - name: Comment on PR (if Story 0001 files changed)
-      if: github.event_name == 'pull_request' && steps.detect-changes.outputs.STORY_0001_CHANGED == 'true'
+      if: github.event_name == 'pull_request' && steps.detect-changes.outputs.story-files-changed == 'true'
       uses: actions/github-script@v7
       with:
         script: |
-          const changedFiles = `${{ steps.detect-changes.outputs.STORY_0001_FILES }}`;
-          
+          const changedFiles = '${{ steps.detect-changes.outputs.changed-files }}'.split(' ');
           const comment = `## 🚨 Story 0001 Files Modified
           
-          **Warning**: This PR modifies files that are part of Story 0001 (Auth & Org Foundation). Regression testing is recommended.
+          The following Story 0001 core files have been modified in this PR:
           
-          ### Modified Files:
-          ${changedFiles.split('\n').filter(f => f.trim()).map(f => `- \`${f}\``).join('\n')}
+          ${changedFiles.map(file => `- \`${file}\``).join('\n')}
           
-          ### 📋 Recommended Actions:
-          1. **Run UAT Testing**: Review [UAT Checklist](docs/story-0001-uat-signoff-checklist.md)
-          2. **Test Auth Flows**: Signup → Verify → Login → Reset
-          3. **Verify Rate Limiting**: Test resend and reset limits
-          4. **Check Security**: Verify JWT, tokens, and audit logging
-          5. **Update Documentation**: Reflect any changes made
+          **⚠️ Regression Testing Required**
           
-          ### 🧪 Quick Test Commands:
-          \`\`\`bash
-          # Check service status
-          .\\scripts\\story-0001-uat-helper.ps1 -Action status
+          Please ensure the following tests are performed:
+          - [ ] User signup flow
+          - [ ] Email verification
+          - [ ] Password reset flow
+          - [ ] Login functionality
+          - [ ] Database schema changes (if any)
           
-          # Test API endpoints
-          .\\scripts\\story-0001-uat-helper.ps1 -Action api
-          \`\`\`
-          
-          ### 📚 Documentation:
-          - [Story 0001 Signoff](docs/story-0001-signoff-complete.md)
-          - [Implementation Guide](docs/story-0001-implementation-walkthrough.md)
-          - [UAT Checklist](docs/story-0001-uat-signoff-checklist.md)
-          
-          ---
-          *This comment was automatically generated by the Story 0001 Change Monitor*`;
+          See [Story 0001 Monitoring Guide](docs/story-0001-monitoring-guide.md) for detailed testing procedures.`;
           
           github.rest.issues.createComment({
             issue_number: context.issue.number,
@@ -157,61 +160,47 @@ jobs:
           });
     
     - name: Create Issue (if Story 0001 files changed on main/develop)
-      if: github.event_name == 'push' && steps.detect-changes.outputs.STORY_0001_CHANGED == 'true'
+      if: github.event_name == 'push' && steps.detect-changes.outputs.story-files-changed == 'true'
       uses: actions/github-script@v7
       with:
         script: |
-          const changedFiles = `${{ steps.detect-changes.outputs.STORY_0001_FILES }}`;
-          const branch = context.ref.replace('refs/heads/', '');
-          
-          const title = `🚨 Story 0001 Files Modified on ${branch}`;
-          const body = `## Story 0001 Files Modified
-          
-          **Branch**: \`${branch}\`  
-          **Commit**: \`${context.sha}\`  
-          **Date**: ${new Date().toISOString()}
-          
-          ### Modified Files:
-          ${changedFiles.split('\n').filter(f => f.trim()).map(f => `- \`${f}\``).join('\n')}
-          
-          ### 📋 Recommended Actions:
-          1. **Run Regression Testing**: Review [UAT Checklist](docs/story-0001-uat-signoff-checklist.md)
-          2. **Test Auth Flows**: Signup → Verify → Login → Reset
-          3. **Verify Rate Limiting**: Test resend and reset limits
-          4. **Check Security**: Verify JWT, tokens, and audit logging
-          5. **Update Documentation**: Reflect any changes made
-          
-          ### 🧪 Quick Test Commands:
-          \`\`\`bash
-          # Check service status
-          .\\scripts\\story-0001-uat-helper.ps1 -Action status
-          
-          # Test API endpoints
-          .\\scripts\\story-0001-uat-helper.ps1 -Action api
-          \`\`\`
-          
-          ### 📚 Documentation:
-          - [Story 0001 Signoff](docs/story-0001-signoff-complete.md)
-          - [Implementation Guide](docs/story-0001-implementation-walkthrough.md)
-          - [UAT Checklist](docs/story-0001-uat-signoff-checklist.md)
-          
-          ---
-          *This issue was automatically created by the Story 0001 Change Monitor*`;
+          const changedFiles = '${{ steps.detect-changes.outputs.changed-files }}'.split(' ');
+          const issue = {
+            title: '🚨 Story 0001 Files Modified - Regression Testing Required',
+            body: `## Story 0001 Files Modified on ${context.ref}
+            
+            The following Story 0001 core files have been modified:
+            
+            ${changedFiles.map(file => `- \`${file}\``).join('\n')}
+            
+            **⚠️ Regression Testing Required**
+            
+            Please ensure the following tests are performed:
+            - [ ] User signup flow
+            - [ ] Email verification
+            - [ ] Password reset flow
+            - [ ] Login functionality
+            - [ ] Database schema changes (if any)
+            
+            See [Story 0001 Monitoring Guide](docs/story-0001-monitoring-guide.md) for detailed testing procedures.
+            
+            **Priority**: High
+            **Labels**: regression-testing, story-0001, monitoring`,
+            labels: ['regression-testing', 'story-0001', 'monitoring']
+          };
           
           github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            title: title,
-            body: body,
-            labels: ['story-0001', 'regression-testing', 'auth-system']
+            ...issue
           });
     
     - name: Summary
       run: |
-        if [ "${{ steps.detect-changes.outputs.STORY_0001_CHANGED }}" == "true" ]; then
-          echo "🚨 Story 0001 files were modified - regression testing recommended"
-          echo "📋 UAT Checklist: docs/story-0001-uat-signoff-checklist.md"
-          echo "📚 Signoff Document: docs/story-0001-signoff-complete.md"
-        else
-          echo "✅ No Story 0001 files were modified"
+        echo "## Story 0001 Monitoring Summary"
+        echo "Event: ${{ github.event_name }}"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Story 0001 files changed: ${{ steps.detect-changes.outputs.story-files-changed }}"
+        if [ "${{ steps.detect-changes.outputs.story-files-changed }}" == "true" ]; then
+          echo "Changed files: ${{ steps.detect-changes.outputs.changed-files }}"
         fi
