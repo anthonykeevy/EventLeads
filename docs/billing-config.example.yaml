@@ -1,0 +1,49 @@
+env: dev
+
+price_schedule: # amounts in USD
+  day1: 50
+  day2: 40
+  day3: 30
+  day4: 20
+  day5: 10
+  dayN: 10 # day 6 and beyond
+
+# Stripe product/price IDs per environment
+stripe:
+  dev:
+    product_id: prod_DEV_EVENT_DAY
+    prices:
+      day1: price_DEV_DAY1
+      day2: price_DEV_DAY2
+      day3: price_DEV_DAY3
+      day4: price_DEV_DAY4
+      day5: price_DEV_DAY5
+      dayN: price_DEV_DAYN
+  test:
+    product_id: prod_TEST_EVENT_DAY
+    prices:
+      day1: price_TEST_DAY1
+      day2: price_TEST_DAY2
+      day3: price_TEST_DAY3
+      day4: price_TEST_DAY4
+      day5: price_TEST_DAY5
+      dayN: price_TEST_DAYN
+  prod:
+    product_id: prod_PROD_EVENT_DAY
+    prices:
+      day1: price_PROD_DAY1
+      day2: price_PROD_DAY2
+      day3: price_PROD_DAY3
+      day4: price_PROD_DAY4
+      day5: price_PROD_DAY5
+      dayN: price_PROD_DAYN
+
+# Policy
+policy:
+  bill_on: production_ready # charge when enabling production
+  access_model: prepaid_event_days # submissions allowed only on purchased days
+  extensions_allowed: true # allow adding more days later
+  reactivation_allowed: true # allow re-activating after a gap by purchasing more days
+  timezone_source: event.timezone
+  invoice_strategy: entitlements_to_invoice # invoice is sum of purchased days
+  prevent_double_billing: true # enforce unique (event_id, date)

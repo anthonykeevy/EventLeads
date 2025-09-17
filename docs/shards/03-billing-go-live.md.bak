@@ -1,0 +1,18 @@
+# Billing & Go-Live
+
+Source refs: ../event-form-prd.md
+
+## Spend Rules
+- Default budget: $50/day per org
+- Buffer windows: 24h main window + 3h grace for settlements
+
+## Publishing Controls
+- Only Admin role can publish
+- Publish creates an immutable render snapshot
+
+## Invoice Lifecycle
+- Draft → Open → Paid/Failed → Archived
+- Stripe as PSP; webhooks update invoice status
+
+
+

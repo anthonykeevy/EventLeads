@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Force consistent colors that work with and without Dark Reader */
+:root {
+  --foreground-rgb: 17, 24, 39; /* gray-900 */
+  --background-rgb: 249, 250, 251; /* gray-50 */
+  --border-rgb: 209, 213, 219; /* gray-300 */
+  --input-bg-rgb: 255, 255, 255; /* white */
+  --button-bg-rgb: 37, 99, 235; /* blue-600 */
+  --button-hover-rgb: 29, 78, 216; /* blue-700 */
+  --error-bg-rgb: 254, 242, 242; /* red-50 */
+  --error-text-rgb: 185, 28, 28; /* red-700 */
+  --error-border-rgb: 252, 165, 165; /* red-200 */
+}
+
+/* Override Dark Reader and other extensions */
+* {
+  color: rgb(var(--foreground-rgb)) !important;
+  background-color: rgb(var(--background-rgb)) !important;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background-color: rgb(var(--background-rgb));
+  margin: 0;
+  padding: 0;
+}
+
+/* Input fields */
+input[type="email"], 
+input[type="password"], 
+input[type="text"] {
+  color: rgb(var(--foreground-rgb)) !important;
+  background-color: rgb(var(--input-bg-rgb)) !important;
+  border-color: rgb(var(--border-rgb)) !important;
+}
+
+/* Buttons */
+button {
+  color: white !important;
+  background-color: rgb(var(--button-bg-rgb)) !important;
+}
+
+button:hover {
+  background-color: rgb(var(--button-hover-rgb)) !important;
+}
+
+/* Error messages */
+.bg-red-50 {
+  background-color: rgb(var(--error-bg-rgb)) !important;
+  color: rgb(var(--error-text-rgb)) !important;
+  border-color: rgb(var(--error-border-rgb)) !important;
+}
+
+/* Links */
+a {
+  color: rgb(var(--button-bg-rgb)) !important;
+}
+
+a:hover {
+  color: rgb(var(--button-hover-rgb)) !important;
+}
+
+/* White backgrounds for cards */
+.bg-white {
+  background-color: rgb(var(--input-bg-rgb)) !important;
+}
+
+/* Gray backgrounds */
+.bg-gray-50 {
+  background-color: rgb(var(--background-rgb)) !important;
+}
+
+.bg-gray-100 {
+  background-color: rgb(243, 244, 246) !important; /* gray-100 */
+}
+
+/* Text colors */
+.text-gray-900 {
+  color: rgb(var(--foreground-rgb)) !important;
+}
+
+.text-gray-600 {
+  color: rgb(75, 85, 99) !important; /* gray-600 */
+}
+
+.text-gray-500 {
+  color: rgb(107, 114, 128) !important; /* gray-500 */
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

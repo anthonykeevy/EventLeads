@@ -1,0 +1,12 @@
+Agents: analyst, pm, ux-expert, architect, dev
+Commands: *agent pm, *agent architect, *create story, *shard-doc
+Rules:
+  - All code/docs must cite shard section(s)
+  - Any model change requires an Alembic migration + rollback
+DefaultContext:
+  - docs/event-form-prd.md
+  - docs/tech-architecture.md
+  - docs/shards/**
+
+
+
