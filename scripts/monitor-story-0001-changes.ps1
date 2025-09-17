@@ -51,34 +51,14 @@ function Get-ChangedFiles {
     param([string]$Ref)
     
     try {
-        # Use a more robust approach to detect first commit
-        $commitCount = git rev-list --count HEAD 2>$null
+        # Always check all files in the current commit for Story 0001 monitoring
+        # This approach works for both first commit and subsequent commits
+        Write-Host "Checking all files in current commit for Story 0001 changes" -ForegroundColor Gray
+        $allFiles = git ls-tree -r --name-only HEAD 2>$null
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "Total commits in repository: $commitCount" -ForegroundColor Gray
-            
-            if ([int]$commitCount -gt 1) {
-                # Multiple commits exist, compare with previous commit
-                Write-Host "Multiple commits detected - comparing with previous commit" -ForegroundColor Gray
-                $changedFiles = git diff --name-only $Ref HEAD 2>$null
-                if ($LASTEXITCODE -eq 0) {
-                    return $changedFiles
-                } else {
-                    Write-Warning "Git diff command failed."
-                    return @()
-                }
-            } else {
-                # This is the first commit, get all files
-                Write-Host "First commit detected - checking all files in repository" -ForegroundColor Yellow
-                $allFiles = git ls-tree -r --name-only HEAD 2>$null
-                if ($LASTEXITCODE -eq 0) {
-                    return $allFiles
-                } else {
-                    Write-Warning "Git ls-tree command failed."
-                    return @()
-                }
-            }
+            return $allFiles
         } else {
-            Write-Warning "Git rev-list command failed."
+            Write-Warning "Git ls-tree command failed."
             return @()
         }
     } catch {

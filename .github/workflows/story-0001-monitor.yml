@@ -56,20 +56,10 @@ jobs:
       run: |
         echo "🔍 Checking for Story 0001 file changes..."
         
-        # Check if this is the first commit (no HEAD~1)
-        # Use a more robust approach to detect first commit
-        COMMIT_COUNT=$(git rev-list --count HEAD)
-        echo "Total commits in repository: $COMMIT_COUNT"
-        
-        if [ "$COMMIT_COUNT" -gt 1 ]; then
-          # Multiple commits exist, compare with previous commit
-          echo "Multiple commits detected - comparing with previous commit"
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-        else
-          # This is the first commit, check all files
-          echo "First commit detected - checking all files"
-          CHANGED_FILES=$(git ls-tree -r --name-only HEAD)
-        fi
+        # Always check all files in the current commit for Story 0001 monitoring
+        # This approach works for both first commit and subsequent commits
+        echo "Checking all files in current commit for Story 0001 changes"
+        CHANGED_FILES=$(git ls-tree -r --name-only HEAD)
         
         # Story 0001 core files
         STORY_0001_FILES=(
