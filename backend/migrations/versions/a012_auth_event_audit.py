@@ -21,32 +21,36 @@ def upgrade() -> None:
     dialect = bind.dialect.name if bind is not None else ""
     utc_default = sa.text("CURRENT_TIMESTAMP") if dialect == "sqlite" else sa.text("GETUTCDATE()")
 
-    op.create_table(
-        "AuthEvent",
-        sa.Column("AuthEventID", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column("OrganizationID", sa.Integer(), nullable=True),
-        sa.Column("UserID", sa.Integer(), nullable=True),
-        sa.Column("Email", sa.String(length=256), nullable=True),
-        sa.Column("EventType", sa.String(length=64), nullable=False),
-        sa.Column("Status", sa.String(length=16), nullable=False),
-        sa.Column("ReasonCode", sa.String(length=64), nullable=True),
-        sa.Column("RequestID", sa.String(length=64), nullable=True),
-        sa.Column("IP", sa.String(length=64), nullable=True),
-        sa.Column("UserAgent", sa.String(length=256), nullable=True),
-        sa.Column("CreatedDate", sa.DateTime(), nullable=False, server_default=utc_default),
-    )
-
-    # Helpful indexes
-    op.create_index("IX_AuthEvent_CreatedDate", "AuthEvent", ["CreatedDate"]) 
-    op.create_index("IX_AuthEvent_Email", "AuthEvent", ["Email"]) 
-    op.create_index("IX_AuthEvent_EventType", "AuthEvent", ["EventType"]) 
-    op.create_index("IX_AuthEvent_Status", "AuthEvent", ["Status"]) 
+    inspector = sa.inspect(bind)
+    if not inspector.has_table("AuthEvent"):
+        op.create_table(
+            "AuthEvent",
+            sa.Column("AuthEventID", sa.BigInteger(), primary_key=True, autoincrement=True),
+            sa.Column("OrganizationID", sa.Integer(), nullable=True),
+            sa.Column("UserID", sa.Integer(), nullable=True),
+            sa.Column("Email", sa.String(length=256), nullable=True),
+            sa.Column("EventType", sa.String(length=64), nullable=False),
+            sa.Column("Status", sa.String(length=16), nullable=False),
+            sa.Column("ReasonCode", sa.String(length=64), nullable=True),
+            sa.Column("RequestID", sa.String(length=64), nullable=True),
+            sa.Column("IP", sa.String(length=64), nullable=True),
+            sa.Column("UserAgent", sa.String(length=256), nullable=True),
+            sa.Column("CreatedDate", sa.DateTime(), nullable=False, server_default=utc_default),
+        )
+        # Helpful indexes
+        op.create_index("IX_AuthEvent_CreatedDate", "AuthEvent", ["CreatedDate"]) 
+        op.create_index("IX_AuthEvent_Email", "AuthEvent", ["Email"]) 
+        op.create_index("IX_AuthEvent_EventType", "AuthEvent", ["EventType"]) 
+        op.create_index("IX_AuthEvent_Status", "AuthEvent", ["Status"]) 
 
 
 def downgrade() -> None:
-    op.drop_index("IX_AuthEvent_Status", table_name="AuthEvent")
-    op.drop_index("IX_AuthEvent_EventType", table_name="AuthEvent")
-    op.drop_index("IX_AuthEvent_Email", table_name="AuthEvent")
-    op.drop_index("IX_AuthEvent_CreatedDate", table_name="AuthEvent")
-    op.drop_table("AuthEvent")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if inspector.has_table("AuthEvent"):
+        op.drop_index("IX_AuthEvent_Status", table_name="AuthEvent")
+        op.drop_index("IX_AuthEvent_EventType", table_name="AuthEvent")
+        op.drop_index("IX_AuthEvent_Email", table_name="AuthEvent")
+        op.drop_index("IX_AuthEvent_CreatedDate", table_name="AuthEvent")
+        op.drop_table("AuthEvent")
 

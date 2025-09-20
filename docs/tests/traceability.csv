@@ -1,0 +1,14 @@
+req_id,requirement,story_id,test_id,test_title,type
+REQ-DC-01,Email-based domain claims with DMARC alignment,ENA-DomainClaims-Email,TC-DC-001,Verify DMARC aligned path marks claim verified,Integration
+REQ-DC-02,Wildcard only post root verify + Owner + 2FA,ENA-DomainClaims-Email,TC-DC-002,Enforce wildcard guardrails,E2E
+REQ-PRIV-01,Privacy-safe join suggestions,ST-P1-Private-Suggestions,TC-PRIV-001,Show join CTA without identity leakage,E2E
+REQ-ENT-01,Plan and SKU entitlements,ENA-Entitlements,TC-ENT-001,Plan_sku tiers and overage applied correctly,Unit
+REQ-EST-01,Estimator parity with engine,ST-Builder-Estimator,TC-EST-001,Estimator vs Engine parity across 10-SKU matrix,Integration
+REQ-PRC-01,Consumption engine nightly & on-demand parity,ST-Consumption-PricingEngine,TC-PRC-001,Nightly vs on-demand pricing parity,Integration
+REQ-BUD-01,Budget/cap enforcement precedence,ST-Budgets-Caps-Alerts,TC-BUD-001,Group vs org cap precedence enforced,E2E
+REQ-BUD-02,Hard cap blocks action with override,ST-Budgets-Caps-Alerts,TC-BUD-002,Adapter-level block with admin override,E2E
+REQ-ACT-01,Provider retries and DLQ surfaced,ST-Action-Services,TC-ACT-001,Retry/backoff and DLQ admin visibility,Integration
+REQ-POR-01,PoR precedence at billing account,ENA-GroupBilling,TC-POR-001,Billing account PoR overrides child org PoR,Integration
+REQ-DASH-01,Assist Mode banner and audit,ST-Assist-Mode,TC-DASH-001,Banner visible + audited actor/target + expiry,E2E
+REQ-GB-01,Group entitlements inheritance,ST-Group-Entitlements,TC-GB-001,Children inherit defaults unless overridden,Unit
+

@@ -237,3 +237,41 @@ The implementation is complete and functional. All acceptance criteria have been
 The system is ready for comprehensive UAT testing!
 
 
+## UX Feedback and Refinements (2025-09-19)
+
+Based on initial testing and a review by the UX expert, the following refinements have been identified and implemented to improve the user experience.
+
+### 1. Verification Link Clarity (High Priority)
+
+*   **Observation:** The original flow could lead to confusing "Token expired" or "Invalid Token" errors, particularly when a user double-clicks the verification link or the browser auto-refreshes the page. This erodes trust and can cause user frustration right after signing up.
+*   **Implementation:** The `/auth/verify` endpoint has been updated with the following logic:
+    *   If a consumed token is used again within a very short timeframe (< 2 seconds), it is treated as a harmless double-click. The user is redirected to the login page with a success message (`?verified=true`).
+    *   If a consumed token is used after this grace period, it's a potential reuse attempt. The user is redirected to the login page with a clear, actionable error message (`?error=This verification link has already been used. Please try logging in.`).
+    *   Similarly, for genuinely expired or invalid links, the user is redirected with a clear error message in the URL.
+
+### 2. Login Page Context
+
+*   **Observation:** The login page is a single destination for multiple paths (direct navigation, post-verification, post-logout, failed actions). It currently lacks context for the user.
+*   **Recommendation:** Use query parameters in the URL to provide contextual messages on the login page. The changes to the `/verify` endpoint are a perfect example of this. This pattern should be applied consistently. The frontend team will need to build a component to display these messages clearly to the user.
+
+### 3. Password Reset Flow
+
+*   **Observation:** The password reset confirmation is a simple API response ("status: updated"). This leaves the user on a static page without a clear next step.
+*   **Recommendation:** After a successful password reset, the user should be automatically redirected to the login page with a clear success message (e.g., "Your password has been updated. Please log in with your new password."). This provides a smoother transition back into the application.
+
+## v2 Acceptance Criteria Updates (2025-09-20)
+
+Scope: Org-scoped authentication, invitations, and Domain Claims alignment per PRD v2/Architecture v2.
+
+- Org-scoped auth: memberships tracked as `(org_id, user_id)` with roles `Admin`/`User`; JWT carries org context; protected routes enforce org role.
+- DomainClaims (email-based): DMARC-aligned verification; statuses `pending|verified|revoked|pending_conflict`; wildcard allowed only post root verify with Owner + 2FA; `proof` stores hashed headers; no member identity leakage.
+- Invitations: enforce `UNIQUE(org_id, lower(email)) WHERE consumed_at IS NULL`; TTL from `GlobalSetting.invite_token_ttl_hours`; daily cap from `GlobalSetting.invite_daily_limit`; 429 on cap with `Retry-After` header; accept consumes token and creates membership in target org.
+- Privacy-safe join: when email domain matches a verified org domain, show CTA to Request to Join; never reveal member names or member counts.
+- Audit: issuance/consumption of invite tokens, domain claim lifecycle changes, and role changes are audited with actor and before/after JSON.
+- Telemetry: `domain_verify_attempt`, `domain_verify_success` emitted on flows; `invite_create`, `invite_accept` events logged (names illustrative).
+
+Cross-links: `docs/prd/v2-prd.md` (Privacy & Discovery; Domain Claims), `docs/architecture/v2-architecture.md` (Domain Verification Service), ADR‑002, ADR‑003, ADR‑004, ADR‑005. See dashboard ACs in `docs/front-end-spec/head-office-dashboard.md` for related UX guarantees.
+
+Shard refs: `docs/shards/02-data-schema.md`, `docs/shards/04-auth-rbac.md`, `docs/shards/05-devops-migrations.md`
+
+

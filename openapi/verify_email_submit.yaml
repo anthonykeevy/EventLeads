@@ -1,0 +1,67 @@
+openapi: 3.0.3
+info:
+  title: Domain Verification API (Email Submit)
+  version: 0.1.1
+paths:
+  /verify/email-submit:
+    post:
+      summary: Submit email verification result for domain claims
+      operationId: verifyEmailSubmit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, from_domain, dkim_pass, spf_pass, dmarc_aligned]
+              properties:
+                token:
+                  type: string
+                from_domain:
+                  type: string
+                dkim_pass:
+                  type: boolean
+                spf_pass:
+                  type: boolean
+                dmarc_aligned:
+                  type: boolean
+      responses:
+        '200':
+          description: Verification processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: verified
+        '400':
+          description: Invalid token or failed alignment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict detected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        request_id:
+          type: string

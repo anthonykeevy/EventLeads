@@ -16,10 +16,32 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _fk_type(table: str, column: str) -> sa.types.TypeEngine:
+    bind = op.get_bind()
+    dialect = bind.dialect.name if bind is not None else ""
+    if dialect == "mssql":
+        result = bind.execute(
+            sa.text(
+                "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = :t AND COLUMN_NAME = :c"
+            ),
+            {"t": table, "c": column},
+        ).first()
+        dt = (result[0].lower() if result and result[0] else "int")
+        if dt == "bigint":
+            return sa.BigInteger()
+        return sa.Integer()
+    return sa.BigInteger()
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     dialect = bind.dialect.name if bind is not None else ""
     utc_default = sa.text("CURRENT_TIMESTAMP") if dialect == "sqlite" else sa.text("GETUTCDATE()")
+
+    org_fk = _fk_type("Organization", "OrganizationID")
+    event_fk = _fk_type("Event", "EventID")
+    invoice_fk = _fk_type("Invoice", "InvoiceID")
+
     op.create_table(
         "EventDayEntitlement",
         sa.Column(
@@ -28,11 +50,11 @@ def upgrade() -> None:
             primary_key=True,
             autoincrement=True,
         ),
-        sa.Column("OrganizationID", sa.BigInteger(), nullable=False),
-        sa.Column("EventID", sa.BigInteger(), nullable=False),
+        sa.Column("OrganizationID", org_fk, nullable=False),
+        sa.Column("EventID", event_fk, nullable=False),
         sa.Column("EntitlementDate", sa.Date(), nullable=False),
         sa.Column("Amount", sa.Numeric(10, 2), nullable=False),
-        sa.Column("InvoiceID", sa.BigInteger(), nullable=True),
+        sa.Column("InvoiceID", invoice_fk, nullable=True),
         sa.Column(
             "CreatedDate", sa.DateTime(), nullable=False, server_default=utc_default
         ),

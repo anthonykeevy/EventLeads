@@ -1,3 +1,6 @@
+> **Superseded (2025-09-20):** This document is replaced by v2.
+> See: `docs/prd/v2-prd.md` and `docs/architecture/v2-architecture.md`.
+
 # 📐 Technical Architecture: Event Form Builder Platform
 
 ## 1. 🧱 Core Stack
@@ -176,6 +179,7 @@ DEFAULT_TIMEZONE=UTC
 - Event-day guard: compute "today" in `Event.timezone`; block submissions outside `[start_date, end_date]`
 - Usage charges: on first production submission per day, insert `UsageCharge(event_id, charge_date, amount)` per schedule
 - Invoicing: sum usage into invoices; handle via Stripe and webhooks
+ - MVP note: Stripe integration is part of MVP (publish flow, usage charges, and webhooks).
 
 Shard refs: `docs/shards/03-billing-go-live.md`
 
@@ -188,6 +192,11 @@ Shard refs: `docs/shards/03-billing-go-live.md`
 - CanvasLayout: add `form_id` (deprecate `event_id`)
 - Lead: add `is_test`, `form_id`, soft-delete metadata
 - New: `UsageCharge(org_id, event_id, charge_date, amount, source)` unique per day
+ - New: `GlobalSetting(id, key, value, value_type, scope)` with seed `invite_token_ttl_hours = 48`
+ - New: `Invitation(id, org_id, email, role, token, expires_at, consumed_at, created_by)`
+ - New: `FieldTypeVisibility(field_type_id, org_id, enabled)`
+
+Slug timing: `public_slug` is generated when a Form transitions to Ready/Published (post-builder), not at initial creation.
 
 Shard refs: `docs/shards/02-data-schema.md`
 

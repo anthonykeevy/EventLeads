@@ -1,3 +1,6 @@
+> **Superseded (2025-09-20):** This document is replaced by v2.
+> See: `docs/front-end-spec/v2-front-end-spec.md`.
+
 # Event Leads UI/UX Specification
 
 This document defines the user experience goals, information architecture, user flows, and visual design specifications for Event Leads. It serves as the foundation for visual design and frontend development, ensuring a cohesive and user‑centered experience.

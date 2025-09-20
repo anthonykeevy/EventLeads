@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 
 class SignupRequest(BaseModel):
@@ -31,7 +32,8 @@ class ResetConfirmRequest(BaseModel):
 
 class MeResponse(BaseModel):
     user_id: int
-    org_id: int | None
+    org_id: Optional[int] = None
     role: str
     verified: bool
+    needs_onboarding: bool = False
 

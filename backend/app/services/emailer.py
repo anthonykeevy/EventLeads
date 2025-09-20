@@ -1,9 +1,10 @@
 import os
 import smtplib
 from email.message import EmailMessage
+from typing import Optional
 
 
-def _try_smtp_send(to: str, subject: str, body: str) -> tuple[bool, str]:
+def _try_smtp_send(to: str, subject: str, body: str, html_body: Optional[str] = None) -> tuple[bool, str]:
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT", "0") or 0)
     user = os.getenv("SMTP_USER")
@@ -18,7 +19,11 @@ def _try_smtp_send(to: str, subject: str, body: str) -> tuple[bool, str]:
         msg["From"] = sender
         msg["To"] = to
         msg["Subject"] = subject
-        msg.set_content(body)
+        if html_body:
+            msg.set_content(body)
+            msg.add_alternative(html_body, subtype="html")
+        else:
+            msg.set_content(body)
         with smtplib.SMTP(host, port) as s:
             if user and pwd:
                 s.starttls()
@@ -29,9 +34,9 @@ def _try_smtp_send(to: str, subject: str, body: str) -> tuple[bool, str]:
         return False, f"SMTP send failed: {str(e)}"
 
 
-def send_email(to: str, subject: str, body: str) -> None:
+def send_email(to: str, subject: str, body: str, html_body: Optional[str] = None) -> None:
     # Try SMTP; else print to stdout (dev)
-    success, message = _try_smtp_send(to, subject, body)
+    success, message = _try_smtp_send(to, subject, body, html_body)
     if success:
         print(f"[EMAIL][SUCCESS] {message}")
         return
@@ -40,5 +45,9 @@ def send_email(to: str, subject: str, body: str) -> None:
     print(f"[EMAIL][ERROR] {message}")
     print(f"[EMAIL][FALLBACK] To: {to}")
     print(f"[EMAIL][FALLBACK] Subject: {subject}")
-    print(f"[EMAIL][FALLBACK] Body: {body}")
+    if html_body:
+        print(f"[EMAIL][FALLBACK] Body(plain): {body}")
+        print(f"[EMAIL][FALLBACK] Body(html): {html_body}")
+    else:
+        print(f"[EMAIL][FALLBACK] Body: {body}")
 

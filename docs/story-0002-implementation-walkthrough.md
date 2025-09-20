@@ -22,6 +22,11 @@ Shard refs: docs/shards/02-data-schema.md, docs/shards/04-auth-rbac.md, docs/sha
   - a014_canvaslayout_table (new table)
   - Type alignment and guards added to earlier migrations for idempotence across environments
 
+## Temporary Fallback (Band‑Aid)
+- Auto-create/link Organization on signup/login if user lacks `OrganizationID` (see `ensure_user_organization` in `backend/app/routers/auth.py`).
+- Purpose: unblock Event creation while full Organization UX/APIs are delivered.
+- Replaced by: Story-0003 — Organization Management & Membership.
+
 ## Endpoints
 - GET /api/v1/events — list org events
 - POST /api/v1/events — create event

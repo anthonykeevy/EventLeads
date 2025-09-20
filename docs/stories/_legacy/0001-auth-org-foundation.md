@@ -1,4 +1,7 @@
-﻿# Story 0001 — Auth & Org Foundation (M1)
+﻿> **Superseded (2025-09-20):** This document is replaced by v2.
+> See: `docs/prd/v2-prd.md` and `docs/architecture/v2-architecture.md`.
+
+# Story 0001 — Auth & Org Foundation (M1)
 
 Status: Done
 Epic: M1 — Auth & Org foundation

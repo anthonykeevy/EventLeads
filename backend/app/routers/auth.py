@@ -1,8 +1,14 @@
-﻿from datetime import datetime, timedelta, timezone
+﻿# NOTE FOR DEVS:
+# The database schema for this project uses PascalCase for all table and column names
+# (e.g., `TableName`, `ColumnName`). However, the SQLAlchemy models and Python code
+# often use snake_case. When writing raw SQL queries, you MUST use the correct
+# PascalCase names for columns to avoid errors.
+from datetime import datetime, timedelta, timezone
 import secrets
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 
 from ..core.db import engine
@@ -73,7 +79,6 @@ def write_auth_event(
 
 def get_user_by_email(email: str):
     with engine.begin() as conn:
-        # Use SQL Server TOP syntax
         row = conn.execute(
             text(
                 "SELECT TOP 1 * FROM [User] WHERE Email = :email "
@@ -104,6 +109,50 @@ def get_default_org_id() -> Optional[int]:
         return int(row[0]) if row else None
 
 
+def _user_has_org_column(conn) -> bool:
+    exists = conn.execute(
+        text(
+            "SELECT COUNT(1) FROM sys.columns "
+            "WHERE Name = 'OrganizationID' AND Object_ID = Object_ID('[User]')"
+        )
+    ).scalar()
+    try:
+        return bool(int(exists or 0))
+    except Exception:
+        return False
+
+
+def ensure_user_organization(user_id: int, email: str) -> Optional[int]:
+    """Ensure the user has an OrganizationID. Create a default org if missing.
+    Returns the org id if linked, otherwise None when column is not present.
+    """
+    local_name = email.split("@")[0] if email and "@" in email else "Org"
+    with engine.begin() as conn:
+        if not _user_has_org_column(conn):
+            return None
+        row = conn.execute(
+            text("SELECT OrganizationID FROM [User] WHERE UserID = :uid"),
+            {"uid": user_id},
+        ).first()
+        current = int(row[0]) if row and row[0] is not None else None
+        if current:
+            return current
+        conn.execute(
+            text(
+                "INSERT INTO Organization (Name, CreatedDate) "
+                "VALUES (:name, GETDATE())"
+            ),
+            {"name": f"{local_name}'s Organization"},
+        )
+        org_row = conn.execute(text("SELECT SCOPE_IDENTITY()"))
+        new_org_id = int(list(org_row.fetchone() or [0])[0])
+        conn.execute(
+            text("UPDATE [User] SET OrganizationID = :org WHERE UserID = :uid"),
+            {"org": new_org_id, "uid": user_id},
+        )
+        return new_org_id
+
+
 @router.post("/signup", response_model=dict)
 def signup(payload: SignupRequest, request: Request):
     write_auth_event(
@@ -128,28 +177,55 @@ def signup(payload: SignupRequest, request: Request):
     # using bcrypt for new passwords; salt kept for legacy compatibility
     salt = ""
     pwd_hash = hash_password(salt, payload.password)
-    username = payload.email.split("@")[0]
+    # Derive username if needed (not used yet; kept for future)
+    # username = payload.email.split("@")[0]
     with engine.begin() as conn:
+        # Get the "Default Organization" ID
+        default_org = conn.execute(
+            text("SELECT TOP 1 OrganizationID FROM Organization WHERE OrganizationCode = 'DEFAULT'")
+        ).first()
+        
+        if not default_org:
+            raise HTTPException(status_code=500, detail="Default organization not found")
+        
+        org_id = default_org[0]
+
         if existing is None:
             conn.execute(
                 text(
-                    "INSERT INTO [User] (RoleID, Email, PasswordHash, PasswordSalt, EmailVerified, CreatedDate) "
-                    "VALUES (:role_id, :email, :pwd_hash, :salt, 0, GETDATE())"
+                    "INSERT INTO [User] (RoleID, OrganizationID, Email, Username, FirstName, LastName, CreatedBy, PasswordHash, PasswordSalt, EmailVerified, CreatedDate) "
+                    "VALUES (:RoleID, :OrganizationID, :Email, :Username, 'New', 'User', :CreatedBy, :PasswordHash, :PasswordSalt, 0, GETUTCDATE())"
                 ),
                 {
-                    "role_id": role_id,
-                    "email": payload.email,
+                    "RoleID": role_id,
+                    "OrganizationID": org_id,
+                    "Email": payload.email,
+                    "Username": payload.email,
+                    "CreatedBy": payload.email,
+                    "PasswordHash": pwd_hash,
+                    "PasswordSalt": salt,
+                },
+            )
+        else:
+            # Existing unverified user, update password and link to org
+            conn.execute(
+                text(
+                    "UPDATE [User] SET OrganizationID = :org_id, PasswordHash = :pwd_hash, PasswordSalt = :salt WHERE Email = :email"
+                ),
+                {
+                    "org_id": org_id,
                     "pwd_hash": pwd_hash,
                     "salt": salt,
-                },
+                    "email": payload.email
+                }
             )
     token = secrets.token_urlsafe(32)
     expires = _now() + timedelta(minutes=60)
     with engine.begin() as conn:
         conn.execute(
             text(
-                "INSERT INTO emailverificationtoken (user_id, token, "
-                "expires_at, consumed_at, created_at) SELECT TOP 1 UserID, "
+                "INSERT INTO emailverificationtoken (UserID, Token, "
+                "ExpiresAt, ConsumedAt, CreatedAt) SELECT TOP 1 UserID, "
                 ":token, :exp, NULL, GETDATE() FROM [User] WHERE "
                 "Email = :email ORDER BY UserID DESC"
             ),
@@ -171,7 +247,7 @@ def signup(payload: SignupRequest, request: Request):
     return {"status": "verification_required"}
 
 
-@router.get("/verify", response_model=dict)
+@router.get("/verify", response_class=RedirectResponse)
 def verify(token: str, request: Request):
     write_auth_event(
         engine,
@@ -182,10 +258,10 @@ def verify(token: str, request: Request):
     with engine.begin() as conn:
         row = conn.execute(
             text(
-                "SELECT TOP 1 evt.user_id, evt.expires_at, evt.consumed_at, "
+                "SELECT TOP 1 evt.UserID, evt.ExpiresAt, evt.ConsumedAt, "
                 "u.Email FROM emailverificationtoken evt JOIN [User] u ON "
-                "u.UserID = evt.user_id WHERE evt.token = :token "
-                "ORDER BY evt.id DESC"
+                "u.UserID = evt.UserID WHERE evt.Token = :token "
+                "ORDER BY evt.ID DESC"
             ),
             {"token": token},
         ).mappings().first()
@@ -197,28 +273,37 @@ def verify(token: str, request: Request):
                 reason="invalid",
                 request=request,
             )
-            raise HTTPException(status_code=400, detail="Invalid token")
-        if row["consumed_at"] is not None or (
-            row["expires_at"] and row["expires_at"] < _now().replace(tzinfo=None)
-        ):
+            return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?error=Invalid verification link.")
+
+        if row["ConsumedAt"] is not None:
+            time_since_consumed = datetime.now(timezone.utc).replace(tzinfo=None) - row["ConsumedAt"]
+            if time_since_consumed < timedelta(seconds=2):
+                # Harmless double-click, redirect to login as if successful
+                return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?verified=true")
+            else:
+                # Attempt to reuse a token
+                return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?error=This verification link has already been used. Please try logging in.")
+
+        if row["ExpiresAt"] and row["ExpiresAt"] < _now().replace(tzinfo=None):
             write_auth_event(
                 engine,
                 event_type="verification_failure",
                 status="failure",
                 reason="expired",
                 email=row["Email"],
-                user_id=row["user_id"],
+                user_id=row["UserID"],
                 request=request,
             )
-            raise HTTPException(status_code=400, detail="Token expired")
+            return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?error=This verification link has expired. Please request a new one.")
+
         conn.execute(
             text("UPDATE [User] SET EmailVerified = 1 WHERE UserID = :uid"),
-            {"uid": row["user_id"]},
+            {"uid": row["UserID"]},
         )
         conn.execute(
             text(
-                "UPDATE emailverificationtoken SET consumed_at = GETDATE() "
-                "WHERE token = :tkn"
+                "UPDATE emailverificationtoken SET ConsumedAt = GETDATE() "
+                "WHERE Token = :tkn"
             ),
             {"tkn": token},
         )
@@ -226,11 +311,11 @@ def verify(token: str, request: Request):
         engine,
         event_type="verification_success",
         status="success",
-        user_id=row["user_id"],
+        user_id=row["UserID"],
         email=row["Email"],
         request=request,
     )
-    return {"status": "verified"}
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?verified=true")
 
 
 @router.post("/resend", response_model=dict)
@@ -370,8 +455,32 @@ def login(payload: LoginRequest, request: Request):
             request=request,
         )
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    # Ensure org exists and is linked when the column exists
+    org_id = user.get("OrganizationID")
+    if not org_id:
+        try:
+            org_id = ensure_user_organization(int(user["UserID"]), payload.email)
+        except Exception:
+            org_id = None
+    # docs/shards: 04-auth-rbac.md — org scoping; 02-data-schema.md — Organization
+    # Fallback: if user column missing or linking failed, ensure a default org exists
+    if not org_id:
+        try:
+            oid = get_default_org_id()
+            if not oid:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            "INSERT INTO Organization (Name, CreatedDate) VALUES (:n, GETDATE())"
+                        ),
+                        {"n": "Default Organization"},
+                    )
+                oid = get_default_org_id()
+            org_id = oid
+        except Exception:
+            org_id = None
     # Get role name from database
-    role_name = "User"  # default
+    role_name = "User"
     with engine.begin() as conn:
         role_row = conn.execute(
             text("SELECT RoleName FROM Role WHERE RoleID = :role_id"),
@@ -379,10 +488,10 @@ def login(payload: LoginRequest, request: Request):
         ).first()
         if role_row:
             role_name = role_row[0]
-    
+
     claims = {
         "sub": str(user["UserID"]),
-        "org_id": user.get("OrganizationID"),
+        "org_id": org_id,
         "role": role_name,
         "exp": int((_now() + timedelta(hours=8)).timestamp()),
     }
@@ -410,11 +519,23 @@ def auth_dependency(authorization: Optional[str] = Header(None)) -> dict:
 
 @router.get("/me", response_model=MeResponse)
 def me(claims: dict = Depends(auth_dependency)):
+    needs_onboarding = False
+    org_id = claims.get("org_id")
+    if org_id:
+        with engine.begin() as conn:
+            org_code = conn.execute(
+                text("SELECT OrganizationCode FROM Organization WHERE OrganizationID = :org_id"),
+                {"org_id": org_id}
+            ).scalar()
+            if org_code == 'DEFAULT':
+                needs_onboarding = True
+
     return MeResponse(
         user_id=int(claims.get("sub")),
-        org_id=claims.get("org_id"),
+        org_id=org_id,
         role=claims.get("role"),
         verified=True,
+        needs_onboarding=needs_onboarding,
     )
 
 
@@ -433,8 +554,8 @@ def reset_request(payload: ResetRequest, request: Request):
         with engine.begin() as conn:
             recent = conn.execute(
                 text(
-                    "SELECT TOP 1 created_at FROM passwordresettoken "
-                    "WHERE user_id = :uid ORDER BY created_at DESC"
+                    "SELECT TOP 1 CreatedAt FROM passwordresettoken "
+                    "WHERE UserID = :uid ORDER BY CreatedAt DESC"
                 ),
                 {"uid": user["UserID"]},
             ).first()
@@ -451,13 +572,13 @@ def reset_request(payload: ResetRequest, request: Request):
             raise HTTPException(
                 status_code=429, detail="Please wait 5 minutes before requesting another reset"
             )
-        
+
         # Check daily limit (3 resets per day)
         with engine.begin() as conn:
             count_today = conn.execute(
                 text(
                     "SELECT COUNT(1) FROM passwordresettoken WHERE "
-                    "user_id = :uid AND created_at > DATEADD(day, -1, GETDATE())"
+                    "UserID = :uid AND CreatedAt > DATEADD(day, -1, GETDATE())"
                 ),
                 {"uid": user["UserID"]},
             ).scalar()
@@ -479,8 +600,8 @@ def reset_request(payload: ResetRequest, request: Request):
         with engine.begin() as conn:
             conn.execute(
                 text(
-                    "INSERT INTO passwordresettoken (user_id, token, "
-                    "expires_at, consumed_at, created_at) VALUES "
+                    "INSERT INTO passwordresettoken (UserID, Token, "
+                    "ExpiresAt, ConsumedAt, CreatedAt) VALUES "
                     "(:uid, :token, :exp, NULL, GETDATE())"
                 ),
                 {"uid": user["UserID"], "token": token, "exp": expires},
@@ -513,10 +634,10 @@ def reset_confirm(payload: ResetConfirmRequest, request: Request):
     with engine.begin() as conn:
         row = conn.execute(
             text(
-                "SELECT TOP 1 prt.user_id, prt.expires_at, prt.consumed_at, "
+                "SELECT TOP 1 prt.UserID, prt.ExpiresAt, prt.ConsumedAt, "
                 "u.Email FROM passwordresettoken prt JOIN [User] u ON "
-                "u.UserID = prt.user_id WHERE prt.token = :token "
-                "ORDER BY prt.id DESC"
+                "u.UserID = prt.UserID WHERE prt.Token = :token "
+                "ORDER BY prt.ID DESC"
             ),
             {"token": payload.token},
         ).mappings().first()
@@ -529,8 +650,8 @@ def reset_confirm(payload: ResetConfirmRequest, request: Request):
                 request=request,
             )
             raise HTTPException(status_code=400, detail="Invalid token")
-        if row["consumed_at"] is not None or (
-            row["expires_at"] and row["expires_at"] < _now().replace(tzinfo=None)
+        if row["ConsumedAt"] is not None or (
+            row["ExpiresAt"] and row["ExpiresAt"] < _now().replace(tzinfo=None)
         ):
             write_auth_event(
                 engine,
@@ -538,7 +659,7 @@ def reset_confirm(payload: ResetConfirmRequest, request: Request):
                 status="failure",
                 reason="expired",
                 email=row["Email"],
-                user_id=row["user_id"],
+                user_id=row["UserID"],
                 request=request,
             )
             raise HTTPException(status_code=400, detail="Token expired")
@@ -549,12 +670,12 @@ def reset_confirm(payload: ResetConfirmRequest, request: Request):
                 "UPDATE [User] SET PasswordHash = :h, PasswordSalt = :s "
                 "WHERE UserID = :uid"
             ),
-            {"h": pwd_hash, "s": salt, "uid": row["user_id"]},
+            {"h": pwd_hash, "s": salt, "uid": row["UserID"]},
         )
         conn.execute(
             text(
-                "UPDATE passwordresettoken SET consumed_at = GETDATE() "
-                "WHERE token = :tkn"
+                "UPDATE passwordresettoken SET ConsumedAt = GETDATE() "
+                "WHERE Token = :tkn"
             ),
             {"tkn": payload.token},
         )
@@ -563,7 +684,7 @@ def reset_confirm(payload: ResetConfirmRequest, request: Request):
         event_type="reset_confirm_success",
         status="success",
         email=row["Email"],
-        user_id=row["user_id"],
+        user_id=row["UserID"],
         request=request,
     )
     return {"status": "updated"}

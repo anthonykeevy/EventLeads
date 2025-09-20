@@ -16,15 +16,36 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _event_id_type() -> sa.types.TypeEngine:
+    bind = op.get_bind()
+    dialect = bind.dialect.name if bind is not None else ""
+    if dialect == "mssql":
+        # Introspect Event.EventID to choose matching type
+        result = bind.execute(
+            sa.text(
+                "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS "
+                "WHERE TABLE_NAME = 'Event' AND COLUMN_NAME = 'EventID'"
+            )
+        ).first()
+        data_type = (result[0].lower() if result and result[0] else "int")
+        if data_type == "bigint":
+            return sa.BigInteger()
+        return sa.Integer()
+    # Default for other dialects
+    return sa.BigInteger()
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     dialect = bind.dialect.name if bind is not None else ""
     utc_default = sa.text("CURRENT_TIMESTAMP") if dialect == "sqlite" else sa.text("GETUTCDATE()")
 
+    event_fk_type = _event_id_type()
+
     op.create_table(
         "Form",
         sa.Column("FormID", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column("EventID", sa.BigInteger(), sa.ForeignKey("Event.EventID"), nullable=False),
+        sa.Column("EventID", event_fk_type, sa.ForeignKey("Event.EventID"), nullable=False),
         sa.Column("Name", sa.String(length=300), nullable=False),
         sa.Column("Status", sa.String(length=50), nullable=False),
         sa.Column("PublicSlug", sa.String(length=80), nullable=True),

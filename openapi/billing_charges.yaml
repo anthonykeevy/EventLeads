@@ -1,0 +1,77 @@
+openapi: 3.0.3
+info:
+  title: Billing Charges API
+  version: 0.1.0
+paths:
+  /billing/charges:
+    post:
+      summary: Create billing charges (writes ledger lines)
+      operationId: createBillingCharges
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [org_id, project_id, estimate_id]
+              properties:
+                org_id:
+                  type: string
+                project_id:
+                  type: string
+                estimate_id:
+                  type: string
+      responses:
+        '201':
+          description: Ledger lines created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  charge_id:
+                    type: string
+                  ledger_entry_ids:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '409':
+          description: Duplicate charge or conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        request_id:
+          type: string

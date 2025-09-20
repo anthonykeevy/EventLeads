@@ -80,3 +80,38 @@ def list_auth_events(
         ).mappings().all()
     items = [dict(r) for r in rows]
     return {"items": items, "page": page, "page_size": page_size, "total": int(total)}
+
+
+@router.get("/provider-errors")
+def list_provider_errors(
+    provider: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    org_id: Optional[int] = Query(None),
+    from_: Optional[datetime] = Query(None, alias="from"),
+    to: Optional[datetime] = Query(None),
+    page: int = 1,
+    page_size: int = 50,
+    claims: dict = Depends(get_claims),
+):
+    role = claims.get("role")
+    if role not in ("Admin", "SystemAdmin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    # Stub: replace with real provider error table
+    return {"items": [], "page": page, "page_size": page_size, "total": 0}
+
+
+@router.get("/dlq")
+def list_dead_letter_queue(
+    queue: Optional[str] = Query(None),
+    org_id: Optional[int] = Query(None),
+    from_: Optional[datetime] = Query(None, alias="from"),
+    to: Optional[datetime] = Query(None),
+    page: int = 1,
+    page_size: int = 50,
+    claims: dict = Depends(get_claims),
+):
+    role = claims.get("role")
+    if role not in ("Admin", "SystemAdmin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    # Stub: replace with real DLQ table
+    return {"items": [], "page": page, "page_size": page_size, "total": 0}

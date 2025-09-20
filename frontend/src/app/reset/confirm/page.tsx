@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { resetConfirm } from "@/lib/auth";
 import { useSearchParams } from "next/navigation";
 
-export default function ResetConfirmPage() {
+function ResetConfirmInner() {
   const searchParams = useSearchParams();
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
@@ -92,6 +92,14 @@ export default function ResetConfirmPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function ResetConfirmPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading…</div>}>
+      <ResetConfirmInner />
+    </Suspense>
   );
 }
 

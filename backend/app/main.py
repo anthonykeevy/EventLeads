@@ -6,12 +6,18 @@ from .core.settings import settings
 from .routers import (
     auth,
     events,
+    invitations,
+    organizations,
     canvas,
     leads,
     invoices,
     billing,
     audit,
     forms,
+    verification,
+    metering,
+    pricing,
+    admin,
 )
 
 
@@ -56,9 +62,15 @@ def readyz():
 # Routers
 app.include_router(auth.router)
 app.include_router(events.router)
+app.include_router(invitations.router)
+app.include_router(organizations.router)
 app.include_router(forms.router)
 app.include_router(canvas.router)
 app.include_router(leads.router)
 app.include_router(invoices.router)
 app.include_router(billing.router)
 app.include_router(audit.router)
+app.include_router(verification.router)
+app.include_router(metering.router)
+app.include_router(pricing.router)
+app.include_router(admin.router)

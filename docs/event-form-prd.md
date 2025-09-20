@@ -1,3 +1,6 @@
+> **Superseded (2025-09-20):** This document is replaced by v2.
+> See: `docs/prd/v2-prd.md` and `docs/architecture/v2-architecture.md`.
+
 # Product Requirements Document: Visual Form Builder for Event Leads
 
 ## 1. Goals and Background Context
@@ -97,6 +100,12 @@ The goal is to build a visually rich, enterprise-ready platform that enables com
 * Public API
 * Complex conditional logic fields
 * Protected Zones
+
+## MVP Sequencing Notes (v0.2)
+
+- Visual Builder MVP is delivered before public slug/public runtime.
+- `Form.public_slug` is generated when a form is marked Ready/Published (post-builder), not at initial creation.
+- Stripe billing is included in MVP for publish/usage charges and invoices.
 
 ---
 

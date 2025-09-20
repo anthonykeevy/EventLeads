@@ -19,9 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ErrorBoundary>
-          <div id="__next">
-            {children}
-          </div>
+          {children}
         </ErrorBoundary>
       </body>
     </html>

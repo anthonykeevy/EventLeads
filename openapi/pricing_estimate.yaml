@@ -1,0 +1,87 @@
+openapi: 3.0.3
+info:
+  title: Pricing Estimator API
+  version: 0.1.1
+paths:
+  /pricing/estimate:
+    post:
+      summary: Compute a pricing estimate deterministically
+      operationId: createPricingEstimate
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [org_id, project_id, skus, leads]
+              properties:
+                org_id:
+                  type: string
+                project_id:
+                  type: string
+                leads:
+                  type: integer
+                  minimum: 1
+                skus:
+                  type: object
+                  additionalProperties:
+                    type: number
+      responses:
+        '200':
+          description: Estimate result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  base:
+                    type: number
+                  lines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sku:
+                          type: string
+                        included:
+                          type: number
+                        overage:
+                          type: number
+                        total:
+                          type: number
+                  grand_total:
+                    type: number
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        request_id:
+          type: string

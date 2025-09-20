@@ -27,6 +27,9 @@ class User(Base):
         "UserID", BigInteger, primary_key=True, autoincrement=True
     )
     email: Mapped[str] = mapped_column("Email", String(255), nullable=False)
+    username: Mapped[str] = mapped_column("Username", String(255), nullable=False)
+    first_name: Mapped[str] = mapped_column("FirstName", String(255), nullable=False)
+    last_name: Mapped[str] = mapped_column("LastName", String(255), nullable=False)
     password_hash: Mapped[str] = mapped_column("PasswordHash", String(255), nullable=True)
     password_salt: Mapped[str] = mapped_column("PasswordSalt", String(255), nullable=True)
     email_verified: Mapped[bool] = mapped_column("EmailVerified", Boolean, nullable=False, default=False)

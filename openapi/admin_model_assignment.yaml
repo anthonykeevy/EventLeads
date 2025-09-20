@@ -1,0 +1,39 @@
+openapi: 3.0.3
+info:
+  title: Admin Model & Plan Assignment API
+  version: 0.1.0
+paths:
+  /admin/orgs/{org_id}/model-assignment:
+    post:
+      summary: Assign business model and plan to an organization
+      operationId: assignModelPlan
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model_id, plan_id, effective_at]
+              properties:
+                model_id:
+                  type: string
+                plan_id:
+                  type: string
+                effective_at:
+                  type: string
+                  format: date-time
+                overrides:
+                  type: object
+      responses:
+        '200':
+          description: Assignment created
+        '400':
+          description: Invalid request
+        '403':
+          description: Not authorized

@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { verify } from "@/lib/auth";
 import { useSearchParams } from "next/navigation";
 
-export default function VerifyPage() {
+function VerifyInner() {
   const sp = useSearchParams();
   const token = sp.get("token") || "";
   const [msg, setMsg] = useState("Verifying...");
@@ -26,6 +26,14 @@ export default function VerifyPage() {
         <a className="underline" href="/login">Back to login</a>
       </div>
     </main>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading…</div>}>
+      <VerifyInner />
+    </Suspense>
   );
 }
 

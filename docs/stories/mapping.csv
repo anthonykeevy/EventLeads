@@ -1,0 +1,17 @@
+legacy_id,legacy_title,new_story_ids,new_story_titles,delta_notes
+0001,Auth & Org Foundation,"ENA-DomainClaims-Email; ST-P1-Private-Suggestions","DomainClaims Email; Private Suggestions","Org-scoped invites + DomainClaims + privacy-safe join routing; audit scope expanded"
+0002,Event Form Foundation,"ST-Builder-Estimator; ST-Action-Services; ST-Consumption-PricingEngine","Builder Estimator; Action Services; Consumption Pricing Engine","Estimator panel added; action services metered with caps; consumption engine introduced"
+0003,Global Settings & Invitations,"ENA-Entitlements; ENA-Metering-Service; ST-Budgets-Caps-Alerts","Entitlements; Metering Service; Budgets/Caps","Invites now org-unique + caps; budgets per org and billing account"
+0004,Organization Onboarding Wizard,"ENA-OrgHierarchy","Org Hierarchy","Hierarchy enables parent/child structure; onboarding links to create child org"
+0005,Dashboard Scaffold,"ST-HeadOffice-Dashboard; ST-Assist-Mode; ST-Group-Entitlements","Head Office Dashboard; Assist Mode; Group Entitlements","Enterprise dashboard + assist + group entitlements"
+0006,Events CRUD,"ST-Action-Services","Action Services","Event actions instrumented via provider adapters"
+0007,Forms CRUD (Draft Only),"ST-Builder-Estimator","Builder Estimator","Preview/estimator integration added"
+0008,CanvasLayout Bootstrap,"ST-Builder-Estimator","Builder Estimator","No change; estimator integration only"
+0009,FieldType Registry & Seeds,"ENA-Entitlements","Entitlements","SKU catalog + plan_sku include/overage/tiers"
+0010,Visual Builder MVP,"ST-Builder-Estimator","Builder Estimator","Right-rail estimator + telemetry"
+0011,Text Object,"ST-Builder-Estimator","Builder Estimator","Impacts estimator lines"
+0012,Dropdown Object,"ST-Builder-Estimator","Builder Estimator","Impacts estimator lines"
+0013,Checkbox Object,"ST-Builder-Estimator","Builder Estimator","Impacts estimator lines"
+0014,Slug & Public Runtime,"ST-Action-Services","Action Services","Public submission metered; day guard persists"
+0015,Publish & Stripe Billing,"ENA-Entitlements; ENA-PoR-Ledger; ENA-GroupBilling","Entitlements; PoR Ledger; Group Billing","Consumption model + PoR + consolidated billing"
+

@@ -16,15 +16,37 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _fk_type(table: str, column: str) -> sa.types.TypeEngine:
+    bind = op.get_bind()
+    dialect = bind.dialect.name if bind is not None else ""
+    if dialect == "mssql":
+        result = bind.execute(
+            sa.text(
+                "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS "
+                "WHERE TABLE_NAME = :t AND COLUMN_NAME = :c"
+            ),
+            {"t": table, "c": column},
+        ).first()
+        data_type = (result[0].lower() if result and result[0] else "int")
+        if data_type == "bigint":
+            return sa.BigInteger()
+        return sa.Integer()
+    return sa.BigInteger()
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     dialect = bind.dialect.name if bind is not None else ""
     utc_default = sa.text("CURRENT_TIMESTAMP") if dialect == "sqlite" else sa.text("GETUTCDATE()")
+
+    org_fk_type = _fk_type("Organization", "OrganizationID")
+    event_fk_type = _fk_type("Event", "EventID")
+
     op.create_table(
         "UsageCharge",
         sa.Column("UsageChargeID", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column("OrganizationID", sa.BigInteger(), sa.ForeignKey("Organization.OrganizationID"), nullable=False),
-        sa.Column("EventID", sa.BigInteger(), sa.ForeignKey("Event.EventID"), nullable=False),
+        sa.Column("OrganizationID", org_fk_type, sa.ForeignKey("Organization.OrganizationID"), nullable=False),
+        sa.Column("EventID", event_fk_type, sa.ForeignKey("Event.EventID"), nullable=False),
         sa.Column("ChargeDate", sa.Date(), nullable=False),
         sa.Column("Amount", sa.Numeric(10, 2), nullable=False),
         sa.Column("Source", sa.String(length=50), nullable=False),

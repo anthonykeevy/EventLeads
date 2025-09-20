@@ -1,3 +1,6 @@
+> **Superseded (2025-09-20):** This document is replaced by v2.
+> See: `docs/prd/v2-prd.md` and `docs/architecture/v2-architecture.md`.
+
 # Story 0002 — Event & Form Foundation (M1)
 
 Status: Draft

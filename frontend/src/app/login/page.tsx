@@ -1,15 +1,21 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { login } from "@/lib/auth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginInner() {
+  const search = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const prefill = search?.get("email") || "";
+    if (prefill) setEmail(prefill);
+  }, [search]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +119,14 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading…</div>}>
+      <LoginInner />
+    </Suspense>
   );
 }
 
